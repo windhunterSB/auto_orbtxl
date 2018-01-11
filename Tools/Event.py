@@ -54,9 +54,12 @@ class GKeyBoardEvent(PyKeyboardEvent):
 class GMouseEvent(PyMouseEvent):
     def __init__(self, clickHandler=None):
         PyMouseEvent.__init__(self)
+        self.clickHandler = clickHandler
 
     def click(self, x, y, button, press):
-        print(time.time(), x, y, button, press)
+        # print(time.time(), x, y, button, press)
+        if self.clickHandler:
+            self.clickHandler(x, y, button, press)
 
 
 # _keyboard_event_instance = GKeyBoardEvent()
