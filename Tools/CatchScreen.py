@@ -13,7 +13,7 @@ from PIL import ImageGrab
 from win32gui import EnumWindows, IsWindow, GetWindowText
 
 
-HWND_NAME_KEY_WORD = "G68Robot"
+HWND_NAME_KEY_WORD = "orbt xl"
 HWND_TOP = 0
 SWP_NOMOVE= 2
 SWP_NOSIZE= 1
@@ -54,6 +54,6 @@ def CatchScreen(save_file=""):
 	ctypes.windll.user32.GetWindowRect(hwnd,ctypes.byref(rect))
 	rangle = (rect.left, rect.top, rect.right, rect.bottom)
 	image = ImageGrab.grab(rangle)
-	if save_file:
+	if save_file and image:
 		image.save(save_file)
 	return image
