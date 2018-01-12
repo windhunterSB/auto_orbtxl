@@ -23,10 +23,13 @@ _HWND = None
 
 
 class RECT(ctypes.Structure):
-	_fields_ = [('left', ctypes.c_long),
-	            ('top', ctypes.c_long),
-	            ('right', ctypes.c_long),
-	            ('bottom', ctypes.c_long)]
+	_fields_ = [
+		('left', ctypes.c_long),
+		('top', ctypes.c_long),
+		('right', ctypes.c_long),
+		('bottom', ctypes.c_long)
+	]
+
 	def __str__(self):
 		return str((self.left, self.top, self.right, self.bottom))
 

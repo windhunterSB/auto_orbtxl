@@ -20,11 +20,11 @@ import os
 AvatarSize = (5, 5)
 BulletSizeSet = [(4, 4), (5, 5), (7, 7)]
 
-AvatarFeatureColor = [(143, 210, 118), (30, 169, 220)]
+AvatarFeatureColor = [(143, 210, 118), (30, 169, 220), (122, 177, 100)]
 BulletFeatureColor = [
-	[],
-	[],
-	[],
+	[(255, 70, 68), (162, 40, 41), (255, 177, 178), (138, 34, 35)],
+	[(253, 128, 13), (195, 100, 13), (131, 68, 33)],
+	[(253, 128, 13), (189, 3, 239), (80, 13, 111), (129, 1, 165)],
 ]
 
 
@@ -74,7 +74,8 @@ class ColorCnt(object):
 		return abs(pa[0] - pb[0]) + abs(pa[1] - pb[1]) + abs(pa[2] - pb[2])
 
 	def _IsFeaColor(self, pixel):
-		if
+		# if
+		pass
 
 	def _MergeObjects(self, objs):
 		x_r = [100000, -100000]
@@ -88,9 +89,12 @@ class ColorCnt(object):
 			y_r[0] = min(y_r[0], y)
 			y_r[1] = max(y_r[1], y)
 
-		return (x_r[0], y_r[0],
-		        x_r[1] + self.window_size[0],
-		        y_r[1] + self.window_size[1])
+		return (
+			x_r[0],
+			y_r[0],
+			x_r[1] + self.window_size[0],
+			y_r[1] + self.window_size[1]
+		)
 
 	def FastFindObjects(self, box=None):
 		# 使用一些简单策略，快速过滤出潜在的被背景点，然后将它们合并成obj
