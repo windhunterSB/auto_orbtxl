@@ -9,7 +9,7 @@ Description:
 
 ----------------------------------------------------------------------------"""
 
-from Tools import CatchScreen, Event, CollectImages
+from Tools import CatchScreen, Event, CollectImages, Recognize
 import time
 
 
@@ -27,3 +27,4 @@ def LearnAndPlay():
 if __name__ == "__main__":
 	print "start"
 	# CollectLoop()  # do collect images
+	Recognize.Test()

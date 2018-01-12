@@ -12,6 +12,7 @@ Description:
 from CatchScreen import CatchScreen
 import time
 import threading
+import Const
 
 COLLECT_INTERVAL = 0.1  # 0.5s采集一次
 IS_OPEN = False
@@ -24,9 +25,9 @@ def Collecting():
 	global IS_RUNNING
 	IS_RUNNING = True
 	while IS_OPEN:
-		name = "./ImageData/img_" + str(int(time.time() * 100)) + ".jpg"
+		name = "./ImageData/img_" + str(int(time.time() * 100)) + ".bmp"
 		try:
-			CatchScreen(name)
+			CatchScreen(name, scale_div=Const.SCALE_DIV)  #
 		except Exception, ex:
 			print ex
 			IS_OPEN = False

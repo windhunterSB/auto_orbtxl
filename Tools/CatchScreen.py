@@ -11,6 +11,7 @@ Description:
 import ctypes
 from PIL import ImageGrab
 from win32gui import EnumWindows, IsWindow, GetWindowText
+from Const import GameFrameSize, GameFrameOffset
 
 
 HWND_NAME_KEY_WORD = "orbt xl"
@@ -43,7 +44,7 @@ def GetHwnd():
 	return _HWND
 
 
-def CatchScreen(save_file=""):
+def CatchScreen(save_file="", scale_div=1):
 	hwnd = GetHwnd()
 	if not hwnd:
 		print "Can't find Game Screen!"
@@ -54,6 +55,8 @@ def CatchScreen(save_file=""):
 	ctypes.windll.user32.GetWindowRect(hwnd,ctypes.byref(rect))
 	rangle = (rect.left, rect.top, rect.right, rect.bottom)
 	image = ImageGrab.grab(rangle)
+	image = image.crop((GameFrameOffset[0], GameFrameOffset[1], GameFrameOffset[0] + GameFrameSize[0], GameFrameOffset[1] + GameFrameSize[1]))
+	image = image.resize((image.size[0] / scale_div, image.size[1] / scale_div))
 	if save_file and image:
 		image.save(save_file)
 	return image
