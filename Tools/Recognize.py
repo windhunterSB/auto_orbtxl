@@ -272,10 +272,6 @@ def _LoadAverageImage():
 	_Average_Image = ColorCnt(img_data, img_small_data)
 
 
-def Init():
-	_LoadAverageImage()
-
-
 def Load1(img):
 	# 0.0023
 	pix = img.load()
@@ -358,6 +354,3 @@ def Test():
 	# img = img.resize((img.size[0] / 4, img.size[1] / 4))
 	# img.save("./Objects/Test/a.bmp")
 
-
-# ======= 一些加载项
-Init()
