@@ -71,5 +71,5 @@ MARK_FEATURE_COLOR = [
 ]
 
 
-COLOR_NEIGHBOR_DIST = 4  # 将rgb / 4后判断是不是一种颜色
-
+COLOR_NEIGHBOR_BIT = 2  # 将(r,g,b)各忽略COLOR_NEIGHBOR_BIT位后判断是不是一种颜色
+RGB_NEIGHBOR_CREATOR = 0xfcfcfc  # rgb & COLOR_NEIGHBOR_CREATOR 可直接获得邻域
