@@ -12,8 +12,29 @@ Description:
 import os
 import random
 from Const import *
-from Recognize import ReadImageFromFile
 from sklearn import linear_model
+from sklearn.externals import joblib
+import Image
+
+
+def ReadImageFromFile(file):
+	return Image.open(file)
+
+
+models = {}
+
+
+def SaveModels():
+	for idx, model in models.iteritems():
+		joblib.dump(model, "./Models/m_%d.model" % idx)
+
+
+def LoadModels(num=None):
+	if not num:
+		num = len(MARK_NAME)
+	for idx in xrange(num):
+		models[idx] = joblib.load("./Models/m_%d.model" % idx)
+
 
 # =======  制作训练数据  =====================
 
@@ -109,7 +130,8 @@ def CreateFeatureList(objID, color_ig_cnt):
 def CalcSimilarScore(objID, color_ig_cnt):
 	# 特征计算, color_cnt = { rgb_int: num }
 	fea = CreateFeatureList(objID, color_ig_cnt)
-	pass
+	return models[objID].predict_proba(fea)
+
 
 # ============  特征测试 =========
 
@@ -222,8 +244,9 @@ def TrainForObject(objID):
 			l = max(l, tt[i][0])
 		else:
 			r = min(r, tt[i][0])
-	print "train l & r:", l, r
 	mid = (l + r) / 2
+	print "train l & r:", l, r, "mid:", mid
+
 
 	tt = model.predict_proba(testX)
 	ll = 0
@@ -241,7 +264,8 @@ def TrainForObject(objID):
 	print "test  l & r:", ll, rr
 	print "bad:", bad_num
 	print "=" * 20
-
+	global models
+	models[objID] = model
 
 
 def Test():
@@ -251,3 +275,4 @@ def Test():
 
 	for ID in xrange(7):
 		TrainForObject(ID)
+	SaveModels()
