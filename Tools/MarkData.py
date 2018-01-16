@@ -43,10 +43,11 @@ def CatchSmallImageForObjects(img, pic_name):
 					if RGBInt(data[x, yy]) != rgb:
 						ey = yy
 						break
-				img.crop((x+1, y+1, ex-1, ey-1)).save("%s/%s/%s_%s_%s.bmp" % (Const.MARK_IMAGE_PATH, name,pic_name, x, y))
-				for xx in xrange(x, ex):
-					for yy in xrange(y, ey):
-						vst.add((xx<<16)|yy)
+				if ex - x > 3 and ey - y > 3:
+					img.crop((x+1, y+1, ex-1, ey-1)).save("%s/%s/%s_%s_%s.bmp" % (Const.MARK_IMAGE_PATH, name,pic_name, x, y))
+					for xx in xrange(x, ex):
+						for yy in xrange(y, ey):
+							vst.add((xx<<16)|yy)
 
 	# 随机生成20个other系列12x12大小,用于训练
 	num = 20
@@ -86,6 +87,7 @@ def CalcSimilarScore(objID, color_cnt):
 # ============  特征测试 =========
 
 def CalcFeatureForObject(objID):
+	print "objID:", objID
 	name = Const.MARK_NAME[objID]
 	imgs = []
 	for root, dirs, files in os.walk(os.path.join(Const.MARK_IMAGE_PATH, name)):
@@ -119,7 +121,7 @@ def CalcFeatureForObject(objID):
 		print "d:", Const.MARK_DIAMETER[objID], "size:", Const.MARK_DIAMETER[objID] ** 2
 	except:
 		pass
-	print d_set
+	print "d_set:", d_set
 	for v, k in sorted(map(lambda kv: (kv[1], kv[0]), color_set.iteritems()), reverse=True):
 		print k, RGBTuple(k), ":", v, "   ave:", 1.0 * v / len(imgs), "   (%s, %.2lf, %s)" % (k, 1.0 * v / len(imgs), RGBTuple(k))
 
@@ -153,9 +155,9 @@ def CalcFeatureForObject(objID):
 	except:
 		pass
 
-
+	print "=" * 20
 
 def Test():
 	# CatchAllObjects()
-	for ID in xrange(5):
+	for ID in xrange(7):
 		CalcFeatureForObject(ID)
