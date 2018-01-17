@@ -16,18 +16,29 @@ import Image
 import time
 import os
 from Const import *
-from MarkData import ReadImageFromFile, LoadModels, GetColorCntIgnore, CalcSimilarScore, RGBWithIgnore
+from MarkData import ReadImageFromFile, LoadModels, GetColorCntIgnore, CalcSimilarScore, RGBIntWithIgnore, RGBTuple, GetMidOfModel
+from random import random
 
+
+LoadModels()
 
 POS_BIT_MOVE = 16
+POS_BIT_MOD = (1 << POS_BIT_MOVE) - 1
 BLACK_HOLE_RANGE_IN_80_60 = (36, 26, 45, 35)  # 在80*60的压缩图里，黑洞的大致范围
 CENTER_IN_80_60 = (40, 30)  # 宇宙的中心
 CENTER_IN_160_120 = (80.5, 60.5)
 
 SET_IN_HOLE_RANGE = set()
-for x in xrange(BLACK_HOLE_RANGE_IN_80_60[0], BLACK_HOLE_RANGE_IN_80_60[2]):
-	for y in xrange(BLACK_HOLE_RANGE_IN_80_60[1], BLACK_HOLE_RANGE_IN_80_60[3]):
-		SET_IN_HOLE_RANGE.add((x << POS_BIT_MOVE) | y)
+# for x in xrange(BLACK_HOLE_RANGE_IN_80_60[0], BLACK_HOLE_RANGE_IN_80_60[2]):
+# 	for y in xrange(BLACK_HOLE_RANGE_IN_80_60[1], BLACK_HOLE_RANGE_IN_80_60[3]):
+# 		if (x - CENTER_IN_80_60[0]) ** 2 + (y - CENTER_IN_80_60[1]) ** 2 <= 16:  # 16 = 4 * 4
+# 			SET_IN_HOLE_RANGE.add((x << POS_BIT_MOVE) | y)
+
+FeatureColor = {}
+for idx, fs in enumerate(MARK_FEATURE_COLOR):
+	FeatureColor[idx] = set()
+	for elem in fs:
+		FeatureColor[idx].add(elem[0])
 
 
 def DebugDraw(img, rect, color=(255, 0, 0)):
@@ -40,10 +51,7 @@ def DebugDraw(img, rect, color=(255, 0, 0)):
 
 
 class ColorCnt(object):
-	pos_bit_move = POS_BIT_MOVE  # xy = (x << pos_bit_move) | y
-	pos_bit_mod = (1 << pos_bit_move) - 1
 	rare_prob = 0.002
-	ro = 0.2  # objects 的密度
 
 	def __init__(self, image, image_small=None):
 		if image_small:
@@ -52,26 +60,26 @@ class ColorCnt(object):
 			self.small_image =None
 
 		self.size = image.size
+		self.image_data = image.load()
+
 		x_size, y_size = self.size
-		move = self.pos_bit_move
+		image_data = self.image_data
 
-		image_data = image.load()
+		self.color_cnt = {}  # 随机采样来提取
+		random_num = 1000
+		while random_num > 0:
+			random_num -= 1
+			rgb = RGBIntWithIgnore(image_data[int(random() * x_size), int(random() * y_size)])
+			if rgb in self.color_cnt:
+				self.color_cnt[rgb] += 1
+			else:
+				self.color_cnt[rgb] = 1
 
-		self.color_cnt = {}
-		self.pos_rgb = {}
-		for x in xrange(x_size):
-			for y in xrange(y_size):
-				rgb = RGBWithIgnore(image_data[x, y])
-				if rgb in self.color_cnt:
-					self.color_cnt[rgb] += 1
-				else:
-					self.color_cnt[rgb] = 1
-				self.pos_rgb[(x << move) | y] = rgb
 		self.sortedCnt = sorted([(v, k) for k, v in self.color_cnt.iteritems()])
-		# top6 大概率是背景
-		self.top6 = set()
-		for i in xrange(6):
-			self.top6.add(self.sortedCnt[-i - 1][1])
+		# top5大概率是背景
+		self.top5 = set()
+		for i in xrange(5):
+			self.top5.add(self.sortedCnt[-i - 1][1])
 
 	def FastFindObjPoints(self):
 		# 快速找到可疑点（只在小图中使用）
@@ -79,16 +87,19 @@ class ColorCnt(object):
 		if self.small_image:
 			raise Exception("only use for small image!")
 		points = []
-		for pos, rgb in self.pos_rgb.iteritems():
-			if pos in SET_IN_HOLE_RANGE or rgb in self.top6 or (pos & 255) == 0:  # 直接过滤掉中间的 和 背景的 以及边缘的
-				continue
-			for fi in xrange(len(FeatureColor)):
-				if self._IsFeature(rgb, fi):
-					points.append((pos, fi))
-					break
-		print "fast points:"
+		x_size, y_size = self.size
+		image_data = self.image_data
+		for x in xrange(x_size):
+			for y in xrange(y_size):
+				rgb = RGBIntWithIgnore(image_data[x, y])
+				pos = (x << POS_BIT_MOVE) | y
+				if pos in SET_IN_HOLE_RANGE or rgb in self.top5:  # 直接过滤掉中间的 和 背景的 以及边缘的
+					continue
+				for fi, fs in FeatureColor.iteritems():
+					if rgb in fs:
+						points.append((x, y, fi))
+		# print "fast point num:", len(points)
 		return points
-
 
 	def FastFindObjects(self):
 		# 使用一些简单策略，快速过滤出潜在的被背景点，然后将它们合并成obj
@@ -104,31 +115,63 @@ class ColorCnt(object):
 		x_scale = self.size[0] / self.small_image.size[0]
 		y_scale = self.size[1] / self.small_image.size[1]
 
-		bit_move = self.pos_bit_move
-		bit_mod = self.pos_bit_mod
+		image_data = self.image_data
 
 		vst = set()
 		self.objects = []
-		for s_point, s_fid in s_points:
-			x = (s_point >> bit_move) * x_scale
-			y = (s_point & bit_mod) * y_scale
-			pos = (x << bit_move) | y
+		for s_x, s_y, s_fid in s_points:
+			x = s_x * x_scale
+			y = s_y * y_scale
+			pos = (x << POS_BIT_MOVE) | y
 			if pos in vst:
 				continue
-			f_size = MARK_DIAMETER[s_fid]
-			x_min = max(0, x - f_size[0] + 1)
-			x_max = min(x + f_size[0], x_size - 1)
-			y_min = max(0, y - f_size[1] + 1)
-			y_max = min(y + f_size[1], y_size - 1)
+			f_d = MARK_DIAMETER[s_fid]
+			x_min = max(0, x - f_d + 1)
+			x_max = min(x + f_d, x_size - 1)
+			y_min = max(0, y - f_d + 1)
+			y_max = min(y + f_d, y_size - 1)
 
-			best_dist = 100000000
+			# 预处理,加速一下
+			color_sum = {}
+			for xx in xrange(x_min, x_max + 1):
+				for yy in xrange(y_min, y_max + 1):
+					color = RGBIntWithIgnore(image_data[xx, yy])
+					pp = (xx << POS_BIT_MOVE) | yy
+					color_sum[pp] = {}
+					for c in FeatureColor[s_fid]:
+						color_sum[pp][c] = 0 if color != c else 1
+						if xx > x_min:
+							color_sum[pp][c] += color_sum[((xx - 1) << POS_BIT_MOVE) | yy][c]
+						if yy > y_min:
+							color_sum[pp][c] += color_sum[(xx << POS_BIT_MOVE) | yy - 1][c]
+						if xx > x_min and yy > y_min:
+							color_sum[pp][c] -= color_sum[((xx - 1) << POS_BIT_MOVE) | yy - 1][c]
+
+			best_score = 1.1  # 1.0 mean must impossible
 			best_xy = None
-			for xx in xrange(x_min, x_max + 1 - f_size[0]):
-				for yy in xrange(y_min, y_max + 1 - f_size[1]):
-					diff = 0
-					for xxx in xrange(xx, xx + f_size[0]):
-						for yyy in xrange(yy, yy + f_size[1]):
-							pass
+			tmp_color = {}
+			for xx in xrange(x_min, x_max + 1 - f_d):
+				for yy in xrange(y_min, y_max + 1 - f_d):
+					for c in FeatureColor[s_fid]:
+						tmp_color[c] = color_sum[((xx + f_d - 1) << POS_BIT_MOVE) | yy + f_d - 1][c]
+						if xx > x_min:
+							tmp_color[c] -= color_sum[((xx - 1) << POS_BIT_MOVE) | yy][c]
+						if yy > y_min:
+							tmp_color[c] -= color_sum[(xx << POS_BIT_MOVE) | yy - 1][c]
+						if xx > x_min and yy > y_min:
+							tmp_color[c] += color_sum[((xx - 1) << POS_BIT_MOVE) | yy - 1][c]
+					score = CalcSimilarScore(s_fid, tmp_color)
+					if score < best_score:
+						best_score = score
+						best_xy = (xx, yy)
+					# print score, (xx, yy), tmp_color, MARK_FEATURE_COLOR[s_fid]
+			if best_score < GetMidOfModel(s_fid):
+				# print best_score, best_xy, (x_min, y_min), (x_max, y_max)
+				xx, yy = best_xy
+				self.objects.append((xx, yy, xx + f_d, yy + f_d, s_fid))
+				for _x in xrange(x_min, x_max + 1):
+					for _y in xrange(y_min, y_max + 1):
+						vst.add((_x << POS_BIT_MOVE) | _y)
 
 		return self.objects
 
@@ -156,11 +199,7 @@ class ColorCnt(object):
 def TestOneImage(path, file, debug=False):
 	img = ReadImageFromFile(path + "/" + file)
 	img_small = img.resize((img.size[0] / 2, img.size[1] / 2))
-
-	img_data = img.getdata()
-	img_small_data = img_small.getdata()
-
-	colorObj = ColorCnt(img_data, img_small_data)
+	colorObj = ColorCnt(img, img_small)
 
 	# print len(colorObj.sortedCnt)
 	# for v, k in colorObj.sortedCnt:
@@ -169,6 +208,7 @@ def TestOneImage(path, file, debug=False):
 	# 	print k >> 16, k>>8 & 255, k & 255, ":", v
 
 	objs = colorObj.FastFindObjects()
+	# print "objs num:", len(objs)
 
 	new_img = Image.new('RGB', (img.size[0], img.size[1] * 2), 255)
 	new_img.paste(img, (0, 0))
@@ -177,9 +217,10 @@ def TestOneImage(path, file, debug=False):
 	# print len(objs)
 	for elem in objs:
 		# print elem
-		DebugDraw(new_img, (elem[0], elem[1], elem[2] - 1, elem[3] - 1), (255, 0, 0))
+		DebugDraw(new_img, (elem[0], elem[1], elem[2] - 1, elem[3] - 1), RGBTuple(MARK_ID_COLORS[elem[4]]))
 
 	new_img.save("./Objects/Test/OutPut/" + file)
+	new_img.crop((0, 0, img.size[0], img.size[1])).save("./Objects/Test/Draw/" + file)
 
 
 def Test():
@@ -194,7 +235,7 @@ def Test():
 				continue
 			num += 1
 			TestOneImage(path, file)
-			break
+			# break
 	ed = time.time()
 	print "use time:", ed - st, "s", "each use:", (ed - st) / num, "s"
 

@@ -15,6 +15,7 @@ from Const import *
 from sklearn import linear_model
 from sklearn.externals import joblib
 import Image
+import numpy as np
 
 
 def ReadImageFromFile(file):
@@ -22,18 +23,23 @@ def ReadImageFromFile(file):
 
 
 models = {}
+models_mid = {}
 
 
 def SaveModels():
 	for idx, model in models.iteritems():
 		joblib.dump(model, "./Models/m_%d.model" % idx)
+	joblib.dump(models_mid, "./Models/models_mid.mid")
 
 
 def LoadModels(num=None):
+	global models_mid
+	global models
 	if not num:
 		num = len(MARK_NAME)
 	for idx in xrange(num):
 		models[idx] = joblib.load("./Models/m_%d.model" % idx)
+	models_mid = joblib.load("./Models/models_mid.mid")
 
 
 # =======  制作训练数据  =====================
@@ -114,23 +120,35 @@ def GetColorCntIgnore(img):
 
 def CreateFeatureList(objID, color_ig_cnt):
 	div = MARK_DIAMETER[objID] ** 2
-	f = [0, 0, 0, 0, 0, 0, 0]
+	f = [0, 0, 0, 0, 0, 0, 0, 0]
+	ave = [0, 0, 0]
 	main_color = MARK_FEATURE_COLOR[objID]
 	for i in xrange(len(main_color)):
 		color, num, rgb = main_color[i]
 		cnt = color_ig_cnt.get(color, 0)
 		f[i] = 1.0 * abs(cnt - num) / div
-	f[3] = f[0] + f[1]
-	f[4] = f[1] + f[2]
-	f[5] = f[0] + f[2]
-	f[6] = f[0] + f[1] + f[2]
+		ave[i] = num
+	f[3] = 1.0 * abs(f[0] + f[1] - ave[0] - ave[1]) / div
+	f[4] = 1.0 * abs(f[1] + f[2] - ave[1] - ave[2]) / div
+	f[5] = 1.0 * abs(f[0] + f[2] - ave[0] - ave[2]) / div
+	f[6] = 1.0 * abs(f[0] + f[1] + f[2] - ave[0] - ave[1] - ave[2]) / div
+	f[7] = 1.0 * abs(div - (f[0] + f[1] + f[2])) / div
 	return f
 
 
+fea = np.array(((0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),))
 def CalcSimilarScore(objID, color_ig_cnt):
 	# 特征计算, color_cnt = { rgb_int: num }
-	fea = CreateFeatureList(objID, color_ig_cnt)
-	return models[objID].predict_proba(fea)
+	global fea, main_ave
+	global models
+	f = CreateFeatureList(objID, color_ig_cnt)
+	for i in xrange(len(f)):
+		fea[0][i] = f[i]
+	return models[objID].predict_proba(fea)[0][0]
+
+
+def GetMidOfModel(objID):
+	return models_mid[objID]
 
 
 # ============  特征测试 =========
@@ -176,7 +194,7 @@ def CalcFeatureForObject(objID):
 	try:
 		# fea: (f1, f2, f3, f1+f2, f2+f3, f1+f3, f1+f2+f3)
 		f = map(lambda e: e[1], MARK_FEATURE_COLOR[objID])
-		ave = (f[0], f[1], f[2], f[0] + f[1], f[1] + f[2], f[0] + f[2], f[0] + f[1] + f[2])
+		ave = (f[0], f[1], f[2])
 		print ave, " <-- ave"
 		for img in imgs:
 			data = img.load()
@@ -200,6 +218,7 @@ def TrainForObject(objID):
 	name = MARK_NAME[objID]
 	positive_features = []
 	negative_features = []
+	man_made_negative_features = []
 	trainX, trainY = [], []
 	testX, testY = [], []
 	for root, dirs, files in os.walk(os.path.join(MARK_IMAGE_PATH, name)):
@@ -207,7 +226,12 @@ def TrainForObject(objID):
 			if file.find(".bmp") == -1:
 				continue
 			img = ReadImageFromFile(os.path.join(MARK_IMAGE_PATH, name, file))
-			positive_features.append(CreateFeatureList(objID, GetColorCntIgnore(img)))
+			color_cnt = GetColorCntIgnore(img)
+			positive_features.append(CreateFeatureList(objID, color_cnt))
+			# for k, v in color_cnt.items():
+			# 	color_cnt[k] = v  * 0.25
+			# man_made_negative_features.append(CreateFeatureList(objID, color_cnt))
+
 	for root, dirs, files in os.walk(os.path.join(MARK_IMAGE_PATH, "Other")):
 		for file in files:
 			if file.find(".bmp") == -1:
@@ -223,6 +247,10 @@ def TrainForObject(objID):
 		else:
 			testX.append(f)
 			testY.append(1)
+
+	for f in man_made_negative_features:
+		trainX.append(f)
+		trainY.append(0)
 
 	pro_n = min(pro, 1.0 * len(trainX) * 2 / len(negative_features))
 	for f in negative_features:
@@ -244,7 +272,7 @@ def TrainForObject(objID):
 			l = max(l, tt[i][0])
 		else:
 			r = min(r, tt[i][0])
-	mid = (l + r) / 2
+	mid = 0.75 * l + r * 0.25  # 不取中值了
 	print "train l & r:", l, r, "mid:", mid
 
 
@@ -263,9 +291,11 @@ def TrainForObject(objID):
 				bad_num += 1
 	print "test  l & r:", ll, rr
 	print "bad:", bad_num
+	print model.coef_, model.intercept_
 	print "=" * 20
 	global models
 	models[objID] = model
+	models_mid[objID] = mid
 
 
 def Test():
