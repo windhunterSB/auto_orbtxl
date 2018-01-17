@@ -133,26 +133,19 @@ def GetColorCntIgnore(img):
 
 def CreateFeatureList(objID, color_ig_cnt):
 	div = MARK_DIAMETER[objID] ** 2
-	f = [0, 0, 0, 0]
-	# ave = [0, 0, 0]
-	s = 0
+	f = [0, 0, 0, 0, 0, 0]
 	main_color = MARK_FEATURE_COLOR[objID]
 	for i in xrange(len(main_color)):
 		color, num, rgb = main_color[i]
 		cnt = color_ig_cnt.get(color, 0)
-		f[i] = 1.0 * abs(cnt - num) / div
-		s += num
-	f[3] = 1.0 * (div - s) / div
-	# 	ave[i] = num
-	# f[3] = 1.0 * abs(f[0] + f[1] - ave[0] - ave[1]) / div
-	# f[4] = 1.0 * abs(f[1] + f[2] - ave[1] - ave[2]) / div
-	# f[5] = 1.0 * abs(f[0] + f[2] - ave[0] - ave[2]) / div
-	# f[6] = 1.0 * abs(f[0] + f[1] + f[2] - ave[0] - ave[1] - ave[2]) / div
-	# f[7] = 1.0 * abs(div - (f[0] + f[1] + f[2])) / div
+		if cnt > num:
+			f[i << 1] = 0.2 * (cnt - num) / div
+		else:
+			f[(i << 1) | 1] = 1.0 * (num - cnt) / div
 	return f
 
 
-fea = np.array(((0.0, 0.0, 0.0, 0.0),))
+fea = np.array(((0.0, 0.0, 0.0, 0.0, 0.0, 0.0),))
 def CalcSimilarScore(objID, color_ig_cnt):
 	# 特征计算, color_cnt = { rgb_int: num }
 	global fea, main_ave
@@ -316,9 +309,9 @@ def TrainForObject(objID):
 
 def Test():
 	# CatchAllObjects()
-	for ID in xrange(7):
-		CalcFeatureForObject(ID)
-
 	# for ID in xrange(7):
-	# 	TrainForObject(ID)
-	# SaveModels()
+	# 	CalcFeatureForObject(ID)
+
+	for ID in xrange(7):
+		TrainForObject(ID)
+	SaveModels()

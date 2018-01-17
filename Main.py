@@ -27,5 +27,5 @@ def LearnAndPlay():
 if __name__ == "__main__":
 	print "start"
 	# CollectLoop()  # do collect images
-	MarkData.Test()
-	# Recognize.Test()
+	# MarkData.Test()
+	Recognize.Test()

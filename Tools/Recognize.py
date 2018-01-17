@@ -24,15 +24,14 @@ LoadModels()
 
 POS_BIT_MOVE = 16
 POS_BIT_MOD = (1 << POS_BIT_MOVE) - 1
-BLACK_HOLE_RANGE_IN_80_60 = (36, 26, 45, 35)  # 在80*60的压缩图里，黑洞的大致范围
-CENTER_IN_80_60 = (40, 30)  # 宇宙的中心
+BLACK_HOLE_RANGE_IN_160_120 = (72, 52, 90, 70)  # 在80*60的压缩图里，黑洞的大致范围
 CENTER_IN_160_120 = (80.5, 60.5)
 
 SET_IN_HOLE_RANGE = set()
-# for x in xrange(BLACK_HOLE_RANGE_IN_80_60[0], BLACK_HOLE_RANGE_IN_80_60[2]):
-# 	for y in xrange(BLACK_HOLE_RANGE_IN_80_60[1], BLACK_HOLE_RANGE_IN_80_60[3]):
-# 		if (x - CENTER_IN_80_60[0]) ** 2 + (y - CENTER_IN_80_60[1]) ** 2 <= 16:  # 16 = 4 * 4
-# 			SET_IN_HOLE_RANGE.add((x << POS_BIT_MOVE) | y)
+for x in xrange(BLACK_HOLE_RANGE_IN_160_120[0], BLACK_HOLE_RANGE_IN_160_120[2]):
+	for y in xrange(BLACK_HOLE_RANGE_IN_160_120[1], BLACK_HOLE_RANGE_IN_160_120[3]):
+		if (x - CENTER_IN_160_120[0]) ** 2 + (y - CENTER_IN_160_120[1]) ** 2 <= 81:  # 100 = 10 * 10
+			SET_IN_HOLE_RANGE.add((x << POS_BIT_MOVE) | y)
 
 FeatureColor = {}
 for idx, fs in enumerate(MARK_FEATURE_COLOR):
@@ -54,7 +53,8 @@ class ColorCnt(object):
 	rare_prob = 0.002
 
 	def __init__(self, image, image_small=None):
-		if image_small:
+		if image.size == (320, 240):
+			image_small = image.resize((image.size[0] / 2, image.size[1] / 2))
 			self.small_image = ColorCnt(image_small)
 		else:
 			self.small_image =None
@@ -119,12 +119,14 @@ class ColorCnt(object):
 
 		vst = set()
 		self.objects = []
+		check_num = 0
 		for s_x, s_y, s_fid in s_points:
 			x = s_x * x_scale
 			y = s_y * y_scale
 			pos = (x << POS_BIT_MOVE) | y
 			if pos in vst:
 				continue
+			check_num += 1
 			f_d = MARK_DIAMETER[s_fid]
 			x_min = max(0, x - f_d + 1)
 			x_max = min(x + f_d, x_size - 1)
@@ -133,6 +135,7 @@ class ColorCnt(object):
 
 			# 预处理,加速一下
 			color_sum = {}
+
 			for xx in xrange(x_min, x_max + 1):
 				for yy in xrange(y_min, y_max + 1):
 					color = RGBIntWithIgnore(image_data[xx, yy])
@@ -172,8 +175,33 @@ class ColorCnt(object):
 				for _x in xrange(x_min, x_max + 1):
 					for _y in xrange(y_min, y_max + 1):
 						vst.add((_x << POS_BIT_MOVE) | _y)
+			else:
+				x_min = max(0, x - f_d / 2 + 1)
+				x_max = min(x + f_d / 2, x_size)
+				y_min = max(0, y - f_d / 2 + 1)
+				y_max = min(y + f_d / 2, y_size)
+				for _x in xrange(x_min, x_max):
+					for _y in xrange(y_min, y_max):
+						vst.add((_x << POS_BIT_MOVE) | _y)
+				# print "fid:", s_fid
 
+		# print check_num, len(self.objects)
 		return self.objects
+
+
+def FindObjs(image):
+	colorObj = ColorCnt(image)
+	objs = colorObj.FastFindObjects()
+	avatar = None
+	others = []
+	for obj in objs:
+		center = 0.5 * (obj[2] - 1 - obj[0]), 0.5 * (obj[3] - 1 - obj[1])
+		if obj[4] == AVATAR_ID:
+			avatar = center
+		else:
+			others.append((others, obj[4]))
+	return avatar, others
+
 
 # ============ other function ===========
 
@@ -196,16 +224,8 @@ class ColorCnt(object):
 # 			r, g, b = pix.getpixel((x, y))
 
 
-def TestOneImage(path, file, debug=False):
-	img = ReadImageFromFile(path + "/" + file)
-	img_small = img.resize((img.size[0] / 2, img.size[1] / 2))
-	colorObj = ColorCnt(img, img_small)
-
-	# print len(colorObj.sortedCnt)
-	# for v, k in colorObj.sortedCnt:
-	# 	if v <= 40:
-	# 		continue
-	# 	print k >> 16, k>>8 & 255, k & 255, ":", v
+def TestOneImage(img, file, debug=False):
+	colorObj = ColorCnt(img)
 
 	objs = colorObj.FastFindObjects()
 	# print "objs num:", len(objs)
@@ -225,7 +245,7 @@ def TestOneImage(path, file, debug=False):
 
 def Test():
 	path = "./ImageData/"
-
+	read_use = 0
 	st = time.time()
 	num = 0
 
@@ -234,8 +254,13 @@ def Test():
 			if file.find(".bmp") == -1:
 				continue
 			num += 1
-			TestOneImage(path, file)
-			# break
+			read_use -= time.time()
+			img = ReadImageFromFile(path + "/" + file)
+			read_use += time.time()
+			TestOneImage(img, file)
+			# if num > 100:
+			# 	break
+			break
 	ed = time.time()
-	print "use time:", ed - st, "s", "each use:", (ed - st) / num, "s"
+	print "use time:", ed - st - read_use, "s", "each use:", (ed - st - read_use) / num, "s", "read total use:", read_use, "s"
 

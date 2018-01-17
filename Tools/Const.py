@@ -17,6 +17,9 @@ SCALE_DIV = 2  # 640x480长宽个缩小2倍，这样图片只有原来的1/4处�
 # 标记数据
 MARK_IMAGE_ORIGIN_PATH = "./MarkImage/Origin/"
 MARK_IMAGE_PATH = "./MarkImage/"
+
+AVATAR_ID = 0
+
 AVATAR_MARK_COLOR = 0xffff00  # 地球的框框颜色
 B1_MARK_COLOR = 0x000000  # 其他需要躲避障碍的框框颜色
 B2_MARK_COLOR = 0xff0000
