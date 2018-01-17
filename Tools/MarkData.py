@@ -56,6 +56,16 @@ def RGBInt(rbg_tuple):
 def RGBTuple(rgb_int):
 	return (rgb_int >> 16, (rgb_int >> 8) & 255, rgb_int & 255)
 
+def GrayInt(rgb_tuple):
+	return (rgb_tuple[0] * 30 + rgb_tuple[1] * 59 + rgb_tuple[2] * 11) / 100
+
+def CreateGrayImage(img):
+	for x in xrange(img.size[0]):
+		for y in xrange(img.size[1]):
+			g = GrayInt(img.getpixel((x, y)))
+			img.putpixel((x, y), (g, g, g))
+	return img
+
 def CatchSmallImageForObjects(img, pic_name):
 	# 从大图中把样本抠出来
 	x_size, y_size = img.size
@@ -79,12 +89,15 @@ def CatchSmallImageForObjects(img, pic_name):
 						break
 				if ex - x > 3 and ey - y > 3:
 					img.crop((x+1, y+1, ex-1, ey-1)).save("%s/%s/%s_%s_%s.bmp" % (MARK_IMAGE_PATH, name,pic_name, x, y))
+					# # 灰度图
+					# CreateGrayImage(img.crop((x+1, y+1, ex-1, ey-1))).save("%s/%s/%s_%s_%s.bmp" % (MARK_IMAGE_PATH, "Test", pic_name, x, y))
+
 					for xx in xrange(x, ex):
 						for yy in xrange(y, ey):
 							vst.add((xx<<16)|yy)
 
-	# 随机生成20个other系列12x12大小,用于训练
-	num = 20
+	# 随机生成10个other系列12x12大小,用于训练
+	num = 10
 	while num > 0:
 		x, y = random.randint(0, x_size - 13), random.randint(0, x_size - 13)
 		ex, ey = x + 12, y + 12
@@ -120,23 +133,26 @@ def GetColorCntIgnore(img):
 
 def CreateFeatureList(objID, color_ig_cnt):
 	div = MARK_DIAMETER[objID] ** 2
-	f = [0, 0, 0, 0, 0, 0, 0, 0]
-	ave = [0, 0, 0]
+	f = [0, 0, 0, 0]
+	# ave = [0, 0, 0]
+	s = 0
 	main_color = MARK_FEATURE_COLOR[objID]
 	for i in xrange(len(main_color)):
 		color, num, rgb = main_color[i]
 		cnt = color_ig_cnt.get(color, 0)
 		f[i] = 1.0 * abs(cnt - num) / div
-		ave[i] = num
-	f[3] = 1.0 * abs(f[0] + f[1] - ave[0] - ave[1]) / div
-	f[4] = 1.0 * abs(f[1] + f[2] - ave[1] - ave[2]) / div
-	f[5] = 1.0 * abs(f[0] + f[2] - ave[0] - ave[2]) / div
-	f[6] = 1.0 * abs(f[0] + f[1] + f[2] - ave[0] - ave[1] - ave[2]) / div
-	f[7] = 1.0 * abs(div - (f[0] + f[1] + f[2])) / div
+		s += num
+	f[3] = 1.0 * (div - s) / div
+	# 	ave[i] = num
+	# f[3] = 1.0 * abs(f[0] + f[1] - ave[0] - ave[1]) / div
+	# f[4] = 1.0 * abs(f[1] + f[2] - ave[1] - ave[2]) / div
+	# f[5] = 1.0 * abs(f[0] + f[2] - ave[0] - ave[2]) / div
+	# f[6] = 1.0 * abs(f[0] + f[1] + f[2] - ave[0] - ave[1] - ave[2]) / div
+	# f[7] = 1.0 * abs(div - (f[0] + f[1] + f[2])) / div
 	return f
 
 
-fea = np.array(((0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),))
+fea = np.array(((0.0, 0.0, 0.0, 0.0),))
 def CalcSimilarScore(objID, color_ig_cnt):
 	# 特征计算, color_cnt = { rgb_int: num }
 	global fea, main_ave
@@ -300,9 +316,9 @@ def TrainForObject(objID):
 
 def Test():
 	# CatchAllObjects()
-	# for ID in xrange(7):
-	# 	CalcFeatureForObject(ID)
-
 	for ID in xrange(7):
-		TrainForObject(ID)
-	SaveModels()
+		CalcFeatureForObject(ID)
+
+	# for ID in xrange(7):
+	# 	TrainForObject(ID)
+	# SaveModels()
