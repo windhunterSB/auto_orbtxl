@@ -195,11 +195,11 @@ def FindObjs(image):
 	avatar = None
 	others = []
 	for obj in objs:
-		center = 0.5 * (obj[2] - 1 - obj[0]), 0.5 * (obj[3] - 1 - obj[1])
+		center = 0.5 * (obj[2] - 1 + obj[0]), 0.5 * (obj[3] - 1 + obj[1])
 		if obj[4] == AVATAR_ID:
 			avatar = center
 		else:
-			others.append((others, obj[4]))
+			others.append((center, obj[4]))
 	return avatar, others
 
 
@@ -260,7 +260,7 @@ def Test():
 			TestOneImage(img, file)
 			# if num > 100:
 			# 	break
-			break
+			# break
 	ed = time.time()
 	print "use time:", ed - st - read_use, "s", "each use:", (ed - st - read_use) / num, "s", "read total use:", read_use, "s"
 
