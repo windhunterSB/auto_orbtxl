@@ -190,6 +190,7 @@ class ColorCnt(object):
 
 
 def FindObjs(image):
+	# 提取图片中的
 	colorObj = ColorCnt(image)
 	objs = colorObj.FastFindObjects()
 	avatar = None
@@ -201,6 +202,11 @@ def FindObjs(image):
 		else:
 			others.append((center, obj[4]))
 	return avatar, others
+
+
+def IsInGame(image):
+	# 通过像素分布验证是不是在游戏的准备画面上（即游戏有没开始）
+	pass
 
 
 # ============ other function ===========
@@ -239,8 +245,8 @@ def TestOneImage(img, file, debug=False):
 		# print elem
 		DebugDraw(new_img, (elem[0], elem[1], elem[2] - 1, elem[3] - 1), RGBTuple(MARK_ID_COLORS[elem[4]]))
 
-	new_img.save("./Objects/Test/OutPut/" + file)
-	new_img.crop((0, 0, img.size[0], img.size[1])).save("./Objects/Test/Draw/" + file)
+	new_img.save("./Test/OutPut/" + file)
+	new_img.crop((0, 0, img.size[0], img.size[1])).save("./Test/Draw/" + file)
 
 
 def Test():

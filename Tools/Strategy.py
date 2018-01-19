@@ -11,32 +11,42 @@ Description:
 
 import math
 import time
+import pickle
 
 
-class HistoryData(object):
+RECORD_PATH = "./GameData/Record/"
+
+class RecordData(object):
 	def __init__(self):
 		self.clean()
 
 	def clean(self):
-		self.idx = []
-		self._monster_idx = 0
-		self.time = []
-		self.avatar = []
-		self.others = {}  # id: history_list
+		self.frames = []  # 记录过程的每一帧的实际数据
 
-	def GetNewMonsterID(self):
-		self._monster_idx += 1
-		return self._monster_idx
-
-	def Update(self, avatarPos, others, catchScreenTime):
+	def InsertData(self, avatarPos, others, catchScreenTime, action, actionTime):
 		# 注意这里用的时间是截图的时间，而不是识别后的时间。识别由额外的时间开销
-		pass
+		frame = {
+			"avtpos": avatarPos,
+			"others": others,
+			"catchT": catchScreenTime,
+			"action": action,
+			"actionT": actionTime,
+		}
+		self.frames.append(frame)
+
+	def Save(self):
+		with open(RECORD_PATH + "test.dat", "wb") as fl:
+			pickle.dump(self.frames, fl, True)
+
+	def Load(self):
+		with open(RECORD_PATH + "test.dat", "rb") as fl:
+			self.frames = pickle.load(fl)
 
 
 class Strategy(object):
 
 	def __init__(self):
-		self.history = HistoryData()
+		self.record = RecordData()
 		self.lazy_clear = False
 
 	def _Dist2(self, p1, p2):
@@ -46,27 +56,21 @@ class Strategy(object):
 		# 注意这里用的时间是截图的时间，而不是识别后的时间。识别由额外的时间开销
 		if not avatarPos:
 			self.lazy_clear = True
-			return
+			return 0
 		if self.lazy_clear:
-			self.history.clean()
+			self.record.clean()
 			self.lazy_clear = False
-		# self.history.Update(avatarPos, others, catchScreenTime)
+
+		pwm = 0
+
 		mapCenter = (160, 120)
 		R = math.sqrt(self._Dist2(avatarPos, mapCenter))
 		for objPos, objID in others:
-			if self._Dist2(objPos, avatarPos) < 1600:
-				ROBJ = math.sqrt(self._Dist2(objPos, mapCenter))
-				if ROBJ > R:
-					print ROBJ, R, avatarPos, objPos, time.time(), 0
-					return 0
-				else:
-					print ROBJ, R, avatarPos, objPos, time.time(), 1
-					return 2
+			pass
 		print R, avatarPos, time.time()
-		if R > 70:
-			return 0
-		elif R < 50:
-			return 2
-		else:
-			return 1
 
+		self.record.InsertData(avatarPos, others, catchScreenTime, pwm, time.time())
+		return pwm
+
+	def Save(self):
+		self.record.Save()

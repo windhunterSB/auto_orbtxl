@@ -50,7 +50,7 @@ def GetHwnd():
 def CatchScreen(save_file="", scale_div=1):
 	hwnd = GetHwnd()
 	if not hwnd:
-		print "Can't find Game Screen!"
+		# print "Can't find Game Screen!"
 		return None
 	# 置顶好像没用的样子
 	# ctypes.windll.user32.SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW)

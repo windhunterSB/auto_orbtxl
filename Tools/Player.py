@@ -12,7 +12,7 @@ Description:
 import Const
 import time
 from Tools import Recognize, CatchScreen, Strategy
-from Tools.Event import ReleaseKey, PressKey, KEY_SPACE, GKeyBoardEvent, KEY_F
+from Tools.Event import ReleaseKey, PressKey, KEY_SPACE, GKeyBoardEvent, KEY_F, KEY_ESC
 import multiprocessing
 
 
@@ -90,8 +90,10 @@ class Player(object):
 			self.queue.put("run")
 		elif code == KEY_F[2]:
 			self.queue.put("pause")
-		elif code == KEY_F[4]:
+		elif code == KEY_ESC:
 			self.is_stopped = True
+		elif code == ord("S"):
+			self.strategy.Save()
 
 	def loop(self):
 		while True:
@@ -101,7 +103,7 @@ class Player(object):
 			# 采样
 			img = CatchScreen.CatchScreen(None, Const.SCALE_DIV)
 			if not img:
-				break
+				continue
 			# 识别
 			avatar, others = Recognize.FindObjs(img)
 			# 策略
