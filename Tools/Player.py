@@ -84,7 +84,7 @@ class Player(object):
 		self.is_stopped = False
 
 	def keyboard_hook(self, code, character, press):
-		if press == False:
+		if not press:
 			return
 		if code == KEY_F[1]:
 			self.queue.put("run")
