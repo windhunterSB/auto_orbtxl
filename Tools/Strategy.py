@@ -12,6 +12,7 @@ Description:
 import math
 import time
 from KnowledgeLearning import RecordData
+import random
 
 
 
@@ -28,13 +29,13 @@ class Strategy(object):
 		# 注意这里用的时间是截图的时间，而不是识别后的时间。识别由额外的时间开销
 		if not avatarPos:
 			return 0
-		pwm = 0
+		pwm = random.randint(0, 2)
 
 		mapCenter = (160, 120)
 		R = math.sqrt(self._Dist2(avatarPos, mapCenter))
 		for objPos, objID in others:
 			pass
-		# print R, avatarPos, time.time()
+		# print R, avatarPos, pwm
 
 		self.record.InsertData(avatarPos, others, catchScreenTime, pwm, time.time())
 		return pwm

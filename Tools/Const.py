@@ -78,7 +78,7 @@ COLOR_NEIGHBOR_BIT = 2  # 将(r,g,b)各忽略COLOR_NEIGHBOR_BIT位后判断是�
 RGB_NEIGHBOR_CREATOR = 0xfcfcfc  # rgb & COLOR_NEIGHBOR_CREATOR 可直接获得邻域
 
 
-CONTROL_INTERVAL = 0.01  # (10ms为间隔进行控制)
-CONTROL_CIRCLE = 2  # 一个周期10个INTERVAL
+CONTROL_INTERVAL = 0.10  # (N ms为间隔进行控制)
+CONTROL_CIRCLE = 2       # 一个周期N个INTERVAL
 
-MAIN_AI_INTERVAL = 0.10  # AI的决策周期(截图+分析+控制策略)
+MAIN_AI_INTERVAL = 0.20  # AI的决策周期(截图+分析+控制策略)

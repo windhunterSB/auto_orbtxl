@@ -55,23 +55,32 @@ def Yaw(p, center):
 def Analysis(record):
 	frames = record.frames
 
-	lastP, lastT, lastA = (0, 0), 0, 0
+	lastP, lastT, lastA, lastR = [], [], [], []
 	for elem in frames:
 		avtpos = elem["avtpos"]
 		tim = elem["catchT"]
-		yaw = Yaw(avtpos, (160, 120))
+		yaw = Yaw(avtpos, (160, 121))
 		speed = 0
 		yaw_speed = 0
-		if lastT:
-			speed = Dist(avtpos, lastP) / (tim - lastT)
-			yaw_speed = (yaw - lastA) / (tim - lastT)
-		lastP = avtpos
-		lastT = tim
-		lastA = yaw
-		print avtpos, yaw, "\t speed:", speed, yaw_speed
+		r_speed = 0
+		a_speed = 0
+		dt = 0
+		r = Dist(avtpos, (160, 121))
+		step = 1
+		if len(lastT) >= step:
+			dt = (tim - lastT[-step])
+			speed = Dist(avtpos, lastP[-step]) / (tim - lastT[-step])
+			yaw_speed = (yaw - lastA[-step]) / (tim - lastT[-step])
+			r_speed = (r - lastR[-step]) / (tim - lastT[-step])
+			a_speed = math.sqrt(speed ** 2 - r_speed ** 2)
+		lastP.append(avtpos)
+		lastT.append(tim)
+		lastA.append(yaw)
+		lastR.append(r)
+		print avtpos, "\t%6.3f" % yaw, " %6.2f" % r, "\t speed: %8.4f" % speed, "  %6.3f %7.3f   %7.3f\t " % (yaw_speed, r_speed, a_speed), dt, elem["action"]
 
 
 def Test():
 	record = RecordData()
-	record.Load("g_1516670554.dat")
+	record.Load("g_1516704746.dat")
 	Analysis(record)

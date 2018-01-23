@@ -279,8 +279,8 @@ def Test():
 			img = ReadImageFromFile(path + "/" + file)
 			read_use += time.time()
 			TestOneImage(img, file)
-			# if num > 100:
-			# 	break
+			if num > 100:
+				break
 			# break
 	ed = time.time()
 	print "use time:", ed - st - read_use, "s", "each use:", (ed - st - read_use) / num, "s", "read total use:", read_use, "s"

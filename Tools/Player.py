@@ -24,7 +24,7 @@ class Controllor(multiprocessing.Process):
 		self.pwm = 0
 		self.cnt = 0
 
-		self.running = False
+		self.running = True
 		self.is_pressed = False
 
 	def stop(self):
@@ -53,6 +53,9 @@ class Controllor(multiprocessing.Process):
 			self.cnt = (self.cnt + 1) % Const.CONTROL_CIRCLE
 			if not self.queue.empty():
 				val = self.queue.get(False)
+				while not self.queue.empty():
+					# 只处理最新的请求
+					val = self.queue.get(False)
 				if val == "esc":
 					# print "esc"
 					break
@@ -64,10 +67,11 @@ class Controllor(multiprocessing.Process):
 					self.running = False
 					self.stop()
 				elif val == "start_game":
-					ReleaseKey(KEY_SPACE)
-					time.sleep(1.0)
-					PressKey(KEY_SPACE)
-					self.is_pressed = True
+					if self.running:
+						ReleaseKey(KEY_SPACE)
+						time.sleep(0.4)
+						PressKey(KEY_SPACE)
+						self.is_pressed = False
 				else:
 					self.pwm = val
 			# 控制
@@ -116,10 +120,15 @@ class Player(object):
 				print "Game Over!"
 				self.strategy.GameOver()  # 游戏结束存盘
 				pwm = "start_game"  # 开启下一局
+			# print "pwm", pwm
 			self.queue.put(pwm)
 
 			use_time = time.time() - start_time
-			time.sleep(max(0, Const.MAIN_AI_INTERVAL - use_time))
+			if use_time > Const.MAIN_AI_INTERVAL:
+				# 超时
+				img.save("./GameData/HardRecognizeImage/img_%s.bmp" % int(time.time() * 100))
+			else:
+				time.sleep(max(0, Const.MAIN_AI_INTERVAL - use_time))
 
 		self.queue.put("esc")
 		self.keyHook.stop()
