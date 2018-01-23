@@ -9,7 +9,7 @@ Description:
 
 ----------------------------------------------------------------------------"""
 
-from Tools import CatchScreen, Event, CollectImages, Recognize, MarkData, Player
+from Tools import CatchScreen, Event, CollectImages, Recognize, MarkData, Player, KnowledgeLearning
 import time
 
 
@@ -26,7 +26,9 @@ def LearnAndPlay():
 
 if __name__ == "__main__":
 	print "start"
-	CollectLoop()  # do collect images
+	# CollectLoop()  # do collect images
 	# MarkData.Test()
 	# Recognize.Test()
+	# Recognize.TestGameStartImage()
 	# Player.Test()
+	KnowledgeLearning.Test()

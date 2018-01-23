@@ -63,6 +63,11 @@ class Controllor(multiprocessing.Process):
 					# print "pause"
 					self.running = False
 					self.stop()
+				elif val == "start_game":
+					ReleaseKey(KEY_SPACE)
+					time.sleep(1.0)
+					PressKey(KEY_SPACE)
+					self.is_pressed = True
 				else:
 					self.pwm = val
 			# 控制
@@ -92,8 +97,6 @@ class Player(object):
 			self.queue.put("pause")
 		elif code == KEY_ESC:
 			self.is_stopped = True
-		elif code == ord("S"):
-			self.strategy.Save()
 
 	def loop(self):
 		while True:
@@ -104,10 +107,15 @@ class Player(object):
 			img = CatchScreen.CatchScreen(None, Const.SCALE_DIV)
 			if not img:
 				continue
-			# 识别
-			avatar, others = Recognize.FindObjs(img)
-			# 策略
-			pwm = self.strategy.Update(avatar, others, start_time)
+			if Recognize.IsInGame(img):
+				# 识别
+				avatar, others = Recognize.FindObjs(img)
+				# 策略
+				pwm = self.strategy.Update(avatar, others, start_time)
+			else:
+				print "Game Over!"
+				self.strategy.GameOver()  # 游戏结束存盘
+				pwm = "start_game"  # 开启下一局
 			self.queue.put(pwm)
 
 			use_time = time.time() - start_time

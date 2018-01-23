@@ -27,6 +27,8 @@ POS_BIT_MOD = (1 << POS_BIT_MOVE) - 1
 BLACK_HOLE_RANGE_IN_160_120 = (72, 52, 90, 70)  # 在80*60的压缩图里，黑洞的大致范围
 CENTER_IN_160_120 = (80.5, 60.5)
 
+START_GAME_FEATURE_RECTS = ((140, 122, 179, 130), (140, 109, 179, 117), (133, 166, 187, 178))
+
 SET_IN_HOLE_RANGE = set()
 for x in xrange(BLACK_HOLE_RANGE_IN_160_120[0], BLACK_HOLE_RANGE_IN_160_120[2]):
 	for y in xrange(BLACK_HOLE_RANGE_IN_160_120[1], BLACK_HOLE_RANGE_IN_160_120[3]):
@@ -206,7 +208,20 @@ def FindObjs(image):
 
 def IsInGame(image):
 	# 通过像素分布验证是不是在游戏的准备画面上（即游戏有没开始）
-	pass
+	pix = image.load()
+	for elem in START_GAME_FEATURE_RECTS:
+		s = 0
+		cnt = 0
+		for x in xrange(elem[0] + 1, elem[2]):
+			for y in xrange(elem[1] + 1, elem[3]):
+				r, g, b = pix[x, y]
+				if r == 255 and g == 255 and b == 255:
+					cnt += 1
+				s += 1
+		# print cnt, s, 1.0 * cnt / s
+		if cnt < s * 3 / 5:
+			return True
+	return False
 
 
 # ============ other function ===========
@@ -270,3 +285,23 @@ def Test():
 	ed = time.time()
 	print "use time:", ed - st - read_use, "s", "each use:", (ed - st - read_use) / num, "s", "read total use:", read_use, "s"
 
+
+def TestGameStartImage():
+	path = "./ImageData/end_image.bmp"
+	img = ReadImageFromFile(path)
+	st = time.time()
+
+	IsInGame(img)
+
+	ed = time.time()
+	print "use time:", ed - st, "s"
+
+	new_img = Image.new('RGB', (img.size[0], img.size[1] * 2), 255)
+	new_img.paste(img, (0, 0))
+	new_img.paste(img, (0, img.size[1]))
+
+	DebugDraw(new_img, (133, 166, 187, 178), (255, 0, 0))
+	DebugDraw(new_img, (140, 122, 179, 130), (255, 0, 0))
+	DebugDraw(new_img, (140, 109, 179, 117), (255, 0, 0))
+
+	new_img.save("./Test/OutPut/end_image.bmp")

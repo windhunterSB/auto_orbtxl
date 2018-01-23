@@ -27,22 +27,19 @@ class Strategy(object):
 	def Update(self, avatarPos, others, catchScreenTime):
 		# 注意这里用的时间是截图的时间，而不是识别后的时间。识别由额外的时间开销
 		if not avatarPos:
-			self.lazy_clear = True
 			return 0
-		if self.lazy_clear:
-			self.record.clean()
-			self.lazy_clear = False
-
 		pwm = 0
 
 		mapCenter = (160, 120)
 		R = math.sqrt(self._Dist2(avatarPos, mapCenter))
 		for objPos, objID in others:
 			pass
-		print R, avatarPos, time.time()
+		# print R, avatarPos, time.time()
 
 		self.record.InsertData(avatarPos, others, catchScreenTime, pwm, time.time())
 		return pwm
 
-	def Save(self):
-		self.record.Save()
+	def GameOver(self):
+		# 出现再来一局时调用
+		self.record.Save("g_%s.dat" % int(time.time()))
+		self.record.Clean()
