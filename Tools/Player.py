@@ -106,16 +106,17 @@ class Player(object):
 		while True:
 			if self.is_stopped:
 				break
-			start_time = time.time()
 			# 采样
+			start_time = time.time()
 			img = CatchScreen.CatchScreen(None, Const.SCALE_DIV)
+			catch_time = time.time()  # 采样时间
 			if not img:
 				continue
 			if Recognize.IsInGame(img):
 				# 识别
 				avatar, others = Recognize.FindObjs(img)
 				# 策略
-				pwm = self.strategy.Update(avatar, others, start_time)
+				pwm = self.strategy.Update(avatar, others, catch_time)
 			else:
 				print "Game Over!"
 				self.strategy.GameOver()  # 游戏结束存盘

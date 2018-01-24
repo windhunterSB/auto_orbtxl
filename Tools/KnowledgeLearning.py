@@ -66,7 +66,7 @@ def Analysis(record):
 		a_speed = 0
 		dt = 0
 		r = Dist(avtpos, (160, 121))
-		step = 1
+		step = 2
 		if len(lastT) >= step:
 			dt = (tim - lastT[-step])
 			speed = Dist(avtpos, lastP[-step]) / (tim - lastT[-step])
@@ -82,5 +82,7 @@ def Analysis(record):
 
 def Test():
 	record = RecordData()
-	record.Load("g_1516704746.dat")
+
+	record.Load("g_1516755044.dat")
+	# record.Load("g_1516755248.dat")
 	Analysis(record)
